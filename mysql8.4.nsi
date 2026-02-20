@@ -1,7 +1,7 @@
 !include "LogicLib.nsh"
 
 Name "MySQL 8.4.8 Setup"
-OutFile "Instalador_MySQL_Final.exe"
+OutFile "MysqlDB-UE.exe"
 RequestExecutionLevel admin
 Unicode True
 
@@ -19,7 +19,7 @@ Section "Install"
     StrCpy $CONF_DIR "$0\MySQL\MySQL Server 8.4"
     StrCpy $DATA_DIR "$0\MySQL\MySQL Server 8.4\Data"
 
-    DetailPrint "1. Instalando dependencias y MSI..."
+    DetailPrint "1. Installing dependencies and MSI..."
     SetOutPath "$PLUGINSDIR"
     File "vcredist_x64.exe"
     ExecWait '"$PLUGINSDIR\vcredist_x64.exe" /quiet /norestart'
@@ -27,16 +27,16 @@ Section "Install"
     File "mysql-8.4.8-winx64.msi"
     ExecWait 'msiexec.exe /i "$PLUGINSDIR\mysql-8.4.8-winx64.msi" /qn /norestart'
 
-    DetailPrint "2. Limpieza de instalaciones previas..."
+    DetailPrint "2. Clean-up of previous installations..."
     nsExec::Exec 'net stop ${SERVICE_NAME}'
     nsExec::Exec 'sc delete ${SERVICE_NAME}'
     Sleep 2000
 
-    DetailPrint "3. Creando directorios..."
+    DetailPrint "3. Creating directories..."
     CreateDirectory "$CONF_DIR"
     CreateDirectory "$DATA_DIR"
 
-    DetailPrint "4. Generando archivo my.ini..."
+    DetailPrint "4. Generating my.ini file..."
     FileOpen $1 "$CONF_DIR\my.ini" w
     FileWrite $1 "[mysqld]$\r$\n"
     FileWrite $1 "port=3306$\r$\n"
@@ -46,18 +46,18 @@ Section "Install"
     FileWrite $1 "character-set-server=utf8mb4$\r$\n"
     FileClose $1
 
-    DetailPrint "5. Inicializando motor de base de datos..."
+    DetailPrint "5. Initializing database engine..."
     SetOutPath "${BIN_DIR}"
     nsExec::ExecToLog '"${BIN_DIR}\mysqld.exe" --defaults-file="$CONF_DIR\my.ini" --initialize-insecure --console'
 
-    DetailPrint "6. Registrando Servicio de Windows..."
+    DetailPrint "6. Registering Windows Service..."
     ; Registramos el servicio vinculado al my.ini
     nsExec::ExecToLog '"${BIN_DIR}\mysqld.exe" --install ${SERVICE_NAME} --defaults-file="$CONF_DIR\my.ini"'
 
-    DetailPrint "7. Iniciando Servicio..."
+    DetailPrint "7. Starting Service..."
     nsExec::Exec 'net start ${SERVICE_NAME}'
 
-    DetailPrint "8. Configurando Firewall..."
+    DetailPrint "8. Configuring Firewall..."
     nsExec::Exec 'netsh advfirewall firewall add rule name="MySQL Port 3306" dir=in action=allow protocol=TCP localport=3306'
 
     Sleep 5000
